@@ -87,6 +87,35 @@
       justify-content: space-between;
       gap: 12px;
     }
+    .collapse-toggle {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--fg-dim);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 200ms var(--ease), background-color 200ms var(--ease);
+    }
+    .collapse-toggle:hover,
+    .collapse-toggle:focus-visible {
+      outline: none;
+      color: var(--fg);
+      background: rgba(255,255,255,0.06);
+    }
+    .collapse-arrow {
+      display: inline-block;
+      font-size: 18px;
+      line-height: 1;
+      transition: transform 260ms var(--ease);
+    }
+    .collapse-toggle[data-collapsed="true"] .collapse-arrow {
+      transform: rotate(180deg);
+    }
     .panel-title {
       font-size: 14px;
       text-transform: uppercase;
@@ -137,6 +166,24 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+    }
+    .file-options {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .file-mode {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--fg-dim);
+    }
+    .file-mode input[type="radio"] {
+      accent-color: var(--accent);
     }
     .btn-row {
       display: flex;
@@ -475,7 +522,9 @@
     <div class="panel controls-panel" id="controlsPanel" data-collapsed="false">
       <div class="panel-head">
         <div class="panel-title">Настройки</div>
-        <button class="btn ghost icon-btn" id="toggleControlsBtn" aria-controls="controlsPanelBody" aria-expanded="true">Скрыть панель</button>
+        <button class="collapse-toggle" type="button" id="toggleControlsBtn" aria-controls="controlsPanelBody" aria-expanded="true" aria-label="Скрыть настройки">
+          <span class="collapse-arrow" aria-hidden="true">▾</span>
+        </button>
       </div>
       <div class="panel-body" id="controlsPanelBody">
         <div class="controls">
@@ -550,7 +599,17 @@
           <div class="slot">
             <input id="url" type="text" placeholder="https://... (txt: одно слово в строке)" />
             <button class="btn primary" id="loadBtn">Загрузить</button>
-            <button class="btn danger" id="resetWordsBtn" title="Вернуть встроенный словарь">Сброс слов</button>
+            <button class="btn danger" id="resetWordsBtn" title="Перезагрузить частотный словарь">Сброс слов</button>
+          </div>
+
+          <!-- Local file -->
+          <label for="fileInput">Свой файл</label>
+          <div class="slot">
+            <input id="fileInput" type="file" accept=".txt,text/plain" />
+            <div class="file-options" id="fileModeOptions">
+              <label class="file-mode"><input type="radio" name="fileMode" value="random" checked /> Рандомно</label>
+              <label class="file-mode"><input type="radio" name="fileMode" value="sequential" /> По порядку</label>
+            </div>
           </div>
 
           <!-- Presets -->
@@ -560,23 +619,16 @@
               <div class="dict-group">
                 <div class="dict-group-title">Русский</div>
                 <div class="btn-row">
-                  <button class="btn" data-preset="ru-lexicon">15 000 базовых слов</button>
+                  <button class="btn" data-preset="ru-lexicon">50 000 частотных слов</button>
                 </div>
-                <div class="dict-note">Широкий охват лексики без тематических ограничений.</div>
+                <div class="dict-note">Корпус OpenSubtitles от HermitDave, сортировка по частоте.</div>
               </div>
               <div class="dict-group">
                 <div class="dict-group-title">Українська</div>
                 <div class="btn-row">
-                  <button class="btn" data-preset="uk-lexicon">15 000 повсякденних слів</button>
+                  <button class="btn" data-preset="uk-lexicon">50 000 частотних слів</button>
                 </div>
-                <div class="dict-note">Актуальні слова сучасної української мови.</div>
-              </div>
-              <div class="dict-group">
-                <div class="dict-group-title">English</div>
-                <div class="btn-row">
-                  <button class="btn" data-preset="en-lexicon">15 000 everyday words</button>
-                </div>
-                <div class="dict-note">Общий словарь без профессиональных тематик.</div>
+                <div class="dict-note">Корпус OpenSubtitles від HermitDave з частотним ранжуванням.</div>
               </div>
             </div>
           </div>
@@ -584,7 +636,7 @@
 
         <div class="status-bar">
           <div>Слов: <span id="countWords">—</span></div>
-          <div>Источник: <span id="source">встроенный</span></div>
+            <div>Источник: <span id="source">—</span></div>
         </div>
       </div>
     </div>
@@ -665,56 +717,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tinykeys@3.0.0/dist/tinykeys.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/focus-visible/5.2.0/focus-visible.min.js"></script>
+  <script src="./dictionaries.js"></script>
 
   <script>
-    // -----------------------------
-    // Встроенный словарь (RU/UK/EN, разнородный)
-    // Можно заменить/расширить по URL.
-    // -----------------------------
-    const builtinWords = [
-      // RU
-      "поток","мысль","искры","ритм","слой","узор","скорость","тишина","выдох","пульс",
-      "контур","ветер","ядро","фокус","заряд","граница","сплин","выбор","штрих","вектор",
-      "смысл","шаг","порог","голос","связь","свет","тень","пласт","знак","сердце",
-      "остов","центр","шанс","пик","порог","порог","маркер","ракурс","скелет","линия",
-      // UK
-      "плин","мисль","ритм","лад","край","зерно","осердя","потік","візерунок","ступінь",
-      "шанс","зв'язок","світло","тінь","знак","обрій","поступ","коло","пласт","відлуння",
-      "вітер","рух","межа","ядро","форма","лад","прискорення","спокій","крок","відчуття",
-      // EN
-      "stream","spark","frame","pulse","vector","anchor","grain","breath","rhythm","pivot",
-      "focus","stride","pattern","edge","glow","shade","limit","chance","link","signal",
-      "tension","calm","sudden","quiet","noise","depth","layer","center","shift","arc",
-      // mixed extras
-      "абстракція","напрям","модуляція","гештальт","симетрія","хаос","порядок","інверсія","контраст","тон",
-      "semantic","syntax","entropy","clarity","intent","impact","balance","resonance","momentum","drift",
-      "flow","idea","sparkle","silence","vectoring","lumen","echo","kernel","axis","field",
-      "мислення","увага","плинність","дотик","сила","інерція","крихкість","градація","квазі","ритмізація"
-    ];
+    if (!window.WordFluxDictionary) {
+      throw new Error('WordFluxDictionary module failed to load.');
+    }
+    const { DEFAULT_SOURCES, loadDictionaries, createSampler } = window.WordFluxDictionary;
 
     const dictionaryPresets = {
       "ru-lexicon": {
-        label: "RU · 15K базовых слов",
+        label: "RU · 50K OpenSubtitles",
         language: "ru",
-        url: "data/ru.txt",
-        size: 15000,
-        words: null,
+        sources: DEFAULT_SOURCES.ru,
+        entries: null,
         loading: null
       },
       "uk-lexicon": {
-        label: "UA · 15K слів",
+        label: "UA · 50K OpenSubtitles",
         language: "uk",
-        url: "data/uk.txt",
-        size: 15000,
-        words: null,
-        loading: null
-      },
-      "en-lexicon": {
-        label: "EN · 15K words",
-        language: "en",
-        url: "data/en.txt",
-        size: 15000,
-        words: null,
+        sources: DEFAULT_SOURCES.uk,
+        entries: null,
         loading: null
       }
     };
@@ -747,17 +770,20 @@
       font: "Inter, system-ui, Arial, sans-serif",
       theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? "dark" : "light",
       animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-      words: [...builtinWords],
-      source: "встроенный",
-      sourceKind: "builtin",
+      words: [],
+      entries: [],
+      sampler: null,
+      samplerMode: 'random',
+      source: "не загружен",
+      sourceKind: "none",
       presetId: null,
       controlsCollapsed: false,
       recentWindow: 200,    // анти-повторы
-      lastSeen: [],
-      rngSeed: Date.now() % 2**31
+      rngSeed: Date.now() % 2**31,
+      fileMode: 'random'
     };
 
-    let toastTimer = 0;
+      let toastTimer = 0;
 
     // -----------------------------
     // PRNG с сидом (xorshift32)
@@ -768,27 +794,70 @@
       x ^= x >>> 17;
       x ^= x << 5;
       state.rngSeed = x;
-      // unsigned to positive
       return (x >>> 0) / 4294967296;
     }
 
-    function pickWord() {
-      const pool = state.words;
-      if (pool.length === 0) return "";
-      let candidate = "";
-      let tries = 0;
-      do {
-        const idx = Math.floor(rng() * pool.length);
-        candidate = pool[idx];
-        tries++;
-        if (tries > 12) break; // не бесконечно
-      } while (state.lastSeen.includes(candidate));
-      // обновить окно
-      state.lastSeen.push(candidate);
-      if (state.lastSeen.length > Math.min(state.recentWindow, Math.max(20, Math.floor(pool.length * 0.3)))) {
-        state.lastSeen.shift();
+    function samplerSeed() {
+      return Math.floor(rng() * 0xffffffff) || (Date.now() & 0xffffffff);
+    }
+
+    function createSequentialSamplerFromWords(words) {
+      const list = Array.isArray(words) ? words.filter(w => typeof w === 'string') : [];
+      let index = 0;
+      return function nextSequentialWord() {
+        if (list.length === 0) {
+          throw new Error('Список слов пуст.');
+        }
+        const word = list[index];
+        index = (index + 1) % list.length;
+        return word;
+      };
+    }
+
+    function applyWordEntries(entries, { id = null, sourceLabel = '', sourceKind = 'preset', silent = false, skipPersist = false, samplerMode = 'random' } = {}) {
+      const validEntries = Array.isArray(entries) ? entries.filter(e => e && typeof e.word === 'string') : [];
+      if (validEntries.length === 0) {
+        throw new Error('Словарь пуст.');
       }
-      return candidate;
+      let sampler;
+      if (samplerMode === 'sequential') {
+        const words = validEntries.map(entry => entry.word);
+        sampler = createSequentialSamplerFromWords(words);
+      } else {
+        sampler = createSampler(validEntries, { seed: samplerSeed(), windowSize: state.recentWindow });
+        samplerMode = 'random';
+      }
+      state.entries = validEntries;
+      state.words = validEntries.map(entry => entry.word);
+      state.sampler = sampler;
+      state.samplerMode = samplerMode;
+      state.source = sourceLabel || 'словарь';
+      state.sourceKind = sourceKind;
+      state.presetId = id;
+      countWordsEl.textContent = String(state.words.length);
+      sourceEl.textContent = state.source;
+      renderPresetSelection();
+      if (!silent) {
+        toast(`Словарь «${state.source}» загружен (${state.words.length}).`);
+      }
+      if (!skipPersist) {
+        persist();
+      }
+    }
+
+    function pickWord() {
+      if (typeof state.sampler === 'function') {
+        try {
+          return state.sampler();
+        } catch (err) {
+          console.warn('Sampler failed, fallback to прямой выбор', err);
+        }
+      }
+      if (Array.isArray(state.words) && state.words.length > 0) {
+        const idx = Math.floor(rng() * state.words.length);
+        return state.words[idx];
+      }
+      return "";
     }
 
     function wordsBatch(n) {
@@ -805,28 +874,28 @@
       });
     }
 
-    async function ensurePresetWords(preset) {
-      if (Array.isArray(preset.words) && preset.words.length > 0) {
-        return preset.words;
+    function syncFileModeControls() {
+      fileModeRadios.forEach(radio => {
+        radio.checked = radio.value === state.fileMode;
+      });
+    }
+
+    async function ensurePresetEntries(preset) {
+      if (Array.isArray(preset.entries) && preset.entries.length > 0) {
+        return preset.entries;
       }
-      if (!preset.url) {
-        throw new Error('Нет источника словаря.');
+      if (!preset.language) {
+        throw new Error('Не указан язык словаря.');
       }
       if (!preset.loading) {
-        preset.loading = fetch(preset.url, { cache: 'no-store' })
-          .then(res => {
-            if (!res.ok) {
-              throw new Error('HTTP ' + res.status);
+        const extra = Array.isArray(preset.extraUrls) ? preset.extraUrls : [];
+        preset.loading = loadDictionaries(preset.language, extra)
+          .then(entries => {
+            if (!Array.isArray(entries) || entries.length === 0) {
+              throw new Error('Словарь не содержит слов.');
             }
-            return res.text();
-          })
-          .then(text => {
-            const list = parseWords(text);
-            if (list.length < 10000) {
-              throw new Error('Получено слишком мало слов (' + list.length + ').');
-            }
-            preset.words = list;
-            return list;
+            preset.entries = entries;
+            return entries;
           })
           .finally(() => {
             preset.loading = null;
@@ -839,8 +908,8 @@
       const preset = dictionaryPresets[id];
       if (!preset) return false;
       try {
-        const words = await ensurePresetWords(preset);
-        applyPreset(preset, words, { id, ...opts });
+        const entries = await ensurePresetEntries(preset);
+        applyPreset(preset, entries, { id, ...opts });
         return true;
       } catch (error) {
         console.error('Failed to load preset', id, error);
@@ -851,21 +920,14 @@
       }
     }
 
-    function applyPreset(preset, words, { id = null, silent = false, skipPersist = false } = {}) {
-      state.words = Array.isArray(words) ? [...words] : [];
-      state.lastSeen.length = 0;
-      state.source = preset.label;
-      state.sourceKind = 'preset';
-      state.presetId = id;
-      countWordsEl.textContent = String(state.words.length);
-      sourceEl.textContent = state.source;
-      renderPresetSelection();
-      if (!silent) {
-        toast(`Словарь «${preset.label}» загружен (${state.words.length}).`);
-      }
-      if (!skipPersist) {
-        persist();
-      }
+    function applyPreset(preset, entries, { id = null, silent = false, skipPersist = false } = {}) {
+      applyWordEntries(entries, {
+        id,
+        sourceLabel: preset.label,
+        sourceKind: 'preset',
+        silent,
+        skipPersist
+      });
     }
 
     function renderControlsCollapse() {
@@ -874,8 +936,9 @@
       controlsPanel.setAttribute('data-collapsed', collapsed ? 'true' : 'false');
       controlsPanelBody?.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
       if (toggleControlsBtn) {
-        toggleControlsBtn.textContent = collapsed ? 'Показать панель' : 'Скрыть панель';
+        toggleControlsBtn.setAttribute('data-collapsed', collapsed ? 'true' : 'false');
         toggleControlsBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        toggleControlsBtn.setAttribute('aria-label', collapsed ? 'Показать настройки' : 'Скрыть настройки');
       }
     }
 
@@ -933,22 +996,14 @@
         node.textContent = nextText;
         return;
       }
-      // лёгкий crossfade
       anime.remove(node);
+      node.textContent = nextText;
       anime({
         targets: node,
-        opacity: [1, 0],
-        duration: Math.max(40, Math.min(120, state.interval * 0.25)),
-        easing: "easeOutQuad",
-        complete: () => {
-          node.textContent = nextText;
-          anime({
-            targets: node,
-            opacity: [0, 1],
-            duration: Math.max(70, Math.min(180, state.interval * 0.35)),
-            easing: "easeOutQuad"
-          });
-        }
+        opacity: [0.85, 1],
+        translateY: [6, 0],
+        duration: Math.max(90, Math.min(220, state.interval * 0.5)),
+        easing: "easeOutQuad"
       });
     }
 
@@ -1005,6 +1060,9 @@
     const urlInput = document.getElementById('url');
     const loadBtn = document.getElementById('loadBtn');
     const resetWordsBtn = document.getElementById('resetWordsBtn');
+    const fileInput = document.getElementById('fileInput');
+    const fileModeOptions = document.getElementById('fileModeOptions');
+    const fileModeRadios = fileModeOptions ? Array.from(fileModeOptions.querySelectorAll('input[name="fileMode"]')) : [];
     const overlayPauseBtn = document.getElementById('overlayPause');
     const overlayFullscreenBtn = document.getElementById('overlayFullscreen');
     const overlaySpeedDownBtn = document.getElementById('overlaySpeedDown');
@@ -1019,6 +1077,7 @@
     animToggle.checked = state.animate;
     document.body.setAttribute('data-theme', state.theme);
     document.body.style.fontFamily = state.font;
+    syncFileModeControls();
 
     colsSel.addEventListener('change', () => {
       state.cols = Math.max(1, Math.min(3, parseInt(colsSel.value, 10) || 1));
@@ -1052,17 +1111,45 @@
     cols3Btn?.addEventListener('click', () => setCols(3));
 
     loadBtn.addEventListener('click', () => loadWordsFromURL());
-    resetWordsBtn.addEventListener('click', () => {
-      state.words = [...builtinWords];
-      state.lastSeen.length = 0;
-      state.source = "встроенный";
-      state.sourceKind = 'builtin';
-      state.presetId = null;
-      countWordsEl.textContent = String(state.words.length);
-      sourceEl.textContent = state.source;
-      renderPresetSelection();
-      toast("Вернулся встроенный словарь.");
-      persist();
+    resetWordsBtn.addEventListener('click', async () => {
+      resetWordsBtn.disabled = true;
+      try {
+        const ok = await applyPresetById('ru-lexicon', { silent: true });
+        if (ok) {
+          toast('Словарь сброшен на русскую частотную базу.');
+        }
+      } finally {
+        resetWordsBtn.disabled = false;
+      }
+    });
+
+    fileInput?.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      await loadWordsFromFile(file);
+      fileInput.value = '';
+    });
+
+    fileModeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (!radio.checked) return;
+        state.fileMode = radio.value === 'sequential' ? 'sequential' : 'random';
+        if (state.sourceKind === 'file' && Array.isArray(state.entries) && state.entries.length > 0) {
+          try {
+            applyWordEntries(state.entries, {
+              id: null,
+              sourceLabel: state.source,
+              sourceKind: 'file',
+              silent: true,
+              skipPersist: true,
+              samplerMode: state.fileMode
+            });
+          } catch (err) {
+            console.warn('Не удалось переключить режим файла', err);
+          }
+        }
+        persist();
+      });
     });
 
     toggleControlsBtn?.addEventListener('click', () => {
@@ -1264,19 +1351,57 @@
           toast("Слишком мало слов. Нужно хотя бы 10.", true);
           return;
         }
-        state.words = list;
-        state.lastSeen.length = 0;
         const host = (() => { try { return new URL(url).hostname || "URL"; } catch { return "URL"; } })();
-        state.source = host;
-        state.sourceKind = 'url';
-        state.presetId = null;
-        countWordsEl.textContent = String(state.words.length);
-        sourceEl.textContent = state.source;
-        renderPresetSelection();
-        toast(`Слова обновлены (${list.length}) из ${state.source}.`);
+        const entries = list.map((word, index) => ({
+          word,
+          frequency: list.length - index,
+          rank: index,
+          source: host,
+          sourceIndex: 0
+        }));
+        applyWordEntries(entries, {
+          id: null,
+          sourceLabel: host,
+          sourceKind: 'url',
+          silent: true,
+          skipPersist: true
+        });
+        toast(`Слова обновлены (${entries.length}) из ${state.source}.`);
         persist();
       } catch (e) {
         toast("Ошибка загрузки: " + e.message, true);
+      }
+    }
+
+    async function loadWordsFromFile(file) {
+      try {
+        const text = await file.text();
+        const list = parseWords(text);
+        if (list.length < 10) {
+          toast("Слишком мало слов. Нужно хотя бы 10.", true);
+          return;
+        }
+        const label = file.name || 'файл';
+        const entries = list.map((word, index) => ({
+          word,
+          frequency: list.length - index,
+          rank: index,
+          source: label,
+          sourceIndex: 0
+        }));
+        const mode = state.fileMode === 'sequential' ? 'sequential' : 'random';
+        applyWordEntries(entries, {
+          id: null,
+          sourceLabel: label,
+          sourceKind: 'file',
+          silent: true,
+          skipPersist: true,
+          samplerMode: mode
+        });
+        toast(`Файл «${state.source}» загружен (${entries.length}).`);
+        persist();
+      } catch (error) {
+        toast("Ошибка чтения файла: " + (error && error.message ? error.message : error), true);
       }
     }
 
@@ -1350,8 +1475,8 @@
           sourceKind: state.sourceKind,
           presetId: state.presetId,
           controlsCollapsed: state.controlsCollapsed,
-          // флаг для обратной совместимости с предыдущими версиями
-          useBuiltin: (state.sourceKind !== 'url')
+          samplerMode: state.samplerMode,
+          fileMode: state.fileMode
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {}
@@ -1379,40 +1504,54 @@
           if (data.theme) { state.theme = data.theme; themeSel.value = state.theme; document.body.setAttribute('data-theme', state.theme); }
           if (typeof data.animate === 'boolean') { state.animate = data.animate; animToggle.checked = state.animate; }
           if (typeof data.controlsCollapsed === 'boolean') { state.controlsCollapsed = data.controlsCollapsed; }
+          if (data.fileMode === 'sequential' || data.fileMode === 'random') { state.fileMode = data.fileMode; }
+          if (data.samplerMode === 'sequential' || data.samplerMode === 'random') { state.samplerMode = data.samplerMode; }
           if (typeof data.sourceKind === 'string') { state.sourceKind = data.sourceKind; }
           if (typeof data.source === 'string') { state.source = data.source; }
           if (typeof data.presetId === 'string') { state.presetId = data.presetId; pendingPreset = data.presetId; }
-          if (state.sourceKind === 'builtin') {
-            state.words = [...builtinWords];
-            state.source = 'встроенный';
-          } else if (state.sourceKind === 'preset' && pendingPreset) {
-            // применим ниже, чтобы не перезаписывать persist во время восстановления
-          } else if (state.sourceKind === 'url') {
-            state.words = [...builtinWords];
-            state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
-          } else if (data.useBuiltin === false) {
-            state.sourceKind = 'url';
-            state.words = [...builtinWords];
-            state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
-          }
         }
       } catch (err) {
         console.warn('Не удалось восстановить состояние', err);
       }
       renderControlsCollapse();
       renderPresetSelection();
+      syncFileModeControls();
+
       if (state.sourceKind === 'preset' && pendingPreset) {
         const loaded = await applyPresetById(pendingPreset, { silent: true, skipPersist: true });
         if (!loaded) {
-          state.sourceKind = 'builtin';
+          state.sourceKind = 'none';
           state.presetId = null;
-          state.words = [...builtinWords];
-          state.source = 'встроенный';
-          countWordsEl.textContent = String(state.words.length);
-          sourceEl.textContent = state.source;
-          renderPresetSelection();
         }
       }
+
+      if (state.sourceKind === 'url') {
+        state.words = [];
+        state.entries = [];
+        state.sampler = null;
+        state.source = state.source ? `${state.source} · обнови` : 'URL · обнови';
+      }
+
+      if (state.sourceKind === 'file') {
+        state.words = [];
+        state.entries = [];
+        state.sampler = null;
+        state.source = state.source ? `${state.source} · выбери заново` : 'Файл · выбери заново';
+      }
+
+      if (!state.sampler || !Array.isArray(state.words) || state.words.length === 0) {
+        const defaultLoaded = await applyPresetById('ru-lexicon', { silent: true, skipPersist: true });
+        if (defaultLoaded) {
+          state.sourceKind = 'preset';
+          state.presetId = 'ru-lexicon';
+        } else {
+          state.source = 'нет словаря';
+        }
+      }
+
+      countWordsEl.textContent = String(state.words.length || 0);
+      sourceEl.textContent = state.source;
+      renderPresetSelection();
     }
 
     // -----------------------------

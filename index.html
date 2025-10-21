@@ -5,6 +5,7 @@
   <title>Word Flux — быстрые случайные слова</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f0f12'/%3E%3Cpath d='M18 18h28v4H22v20h-4V18zm8 10h20v4H30v-4zm0 12h20v4H30v-4z' fill='%23eaeaea'/%3E%3C/svg%3E" />
 
   <!-- Fonts (10 families) via Bunny (без лишней телеметрии) -->
   <link rel="preconnect" href="https://fonts.bunny.net" />
@@ -25,6 +26,7 @@
       --spacing: 12px;
       --radius: 12px;
       --sizeFactor: 1; /* множитель размера от ползунка */
+      --ease: cubic-bezier(0.22, 0.65, 0.35, 1);
     }
     [data-theme="light"] {
       --bg: #fafafa;
@@ -54,7 +56,7 @@
 
     .app {
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto 1fr;
       min-height: 100%;
       gap: var(--spacing);
       padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);
@@ -64,14 +66,58 @@
       background: var(--panel);
       border: 1px solid var(--panel-stroke);
       border-radius: var(--radius);
-      padding: 10px 12px;
+      padding: 14px 16px;
       backdrop-filter: blur(6px);
+      display: grid;
+      gap: 12px;
+      transition: transform 260ms var(--ease), box-shadow 300ms var(--ease);
+    }
+    .panel:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+    }
+    .controls-panel {
+      position: relative;
+      padding-top: 18px;
+      overflow: hidden;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .panel-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--fg-dim);
+    }
+    .panel-body {
+      display: grid;
+      gap: 12px;
+      max-height: 1200px;
+      overflow: hidden;
+      transition: opacity 320ms var(--ease), transform 320ms var(--ease), max-height 360ms var(--ease);
+    }
+    .controls-panel[data-collapsed="true"] .panel-body {
+      opacity: 0;
+      transform: translateY(-12px);
+      max-height: 0;
+      pointer-events: none;
+    }
+    .controls-panel[data-collapsed="true"] {
+      padding-bottom: 18px;
+    }
+    .controls-panel[data-collapsed="true"]:hover {
+      transform: none;
+      box-shadow: none;
     }
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 8px 12px;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 10px 12px;
       align-items: center;
     }
     .controls .group {
@@ -79,7 +125,9 @@
     }
     .controls label {
       grid-column: span 2;
-      font-size: 14px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       color: var(--fg-dim);
       user-select: none;
     }
@@ -88,10 +136,16 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .controls select, .controls input[type="text"] {
       width: 100%;
-      padding: 8px 10px;
+      padding: 9px 12px;
       border-radius: 8px;
       border: 1px solid var(--panel-stroke);
       background: transparent;
@@ -103,14 +157,76 @@
       border: 1px solid var(--panel-stroke);
       background: transparent;
       color: var(--fg);
-      padding: 8px 12px;
+      padding: 9px 14px;
       border-radius: 8px;
       cursor: pointer;
       user-select: none;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: border-color 180ms var(--ease), transform 200ms var(--ease), box-shadow 220ms var(--ease), background-color 200ms var(--ease);
+      box-shadow: 0 0 0 rgba(0,0,0,0);
     }
-    .btn:hover { border-color: var(--accent); }
-    .btn.primary { border-color: var(--accent); }
-    .btn.danger { border-color: var(--danger); color: var(--danger); }
+    .btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+    }
+    .btn:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+    .btn.primary {
+      border-color: var(--accent);
+      background: rgba(138, 180, 255, 0.08);
+    }
+    .btn.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    .btn.ghost {
+      border-color: transparent;
+      background: rgba(255,255,255,0.04);
+    }
+    .btn.icon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding-inline: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 11px;
+    }
+    .btn.is-loading {
+      position: relative;
+      color: var(--fg-dim);
+      pointer-events: none;
+    }
+    .btn.is-loading::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--accent);
+      border-left-color: var(--accent);
+      transform: translate(-50%, -50%);
+      animation: spin 640ms linear infinite;
+    }
+    .btn.is-pressed {
+      animation: btnPulse 340ms var(--ease);
+    }
+    @keyframes btnPulse {
+      0% { transform: translateY(0); box-shadow: 0 0 0 rgba(0,0,0,0); }
+      45% { transform: translateY(-3px) scale(1.02); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28); }
+      100% { transform: translateY(0); box-shadow: 0 0 0 rgba(0,0,0,0); }
+    }
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
 
     .words-panel {
       display: grid;
@@ -150,15 +266,16 @@
     .words.cols-2 .word { font-size: clamp(20px, calc(6.2vw * var(--sizeFactor)), 96px); }
     .words.cols-3 .word { font-size: clamp(18px, calc(5.0vw * var(--sizeFactor)), 72px); }
 
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
+    .status-bar {
+      margin-top: 4px;
       font-size: 12px;
       color: var(--fg-dim);
+      display: flex;
+      justify-content: space-between;
       flex-wrap: wrap;
+      gap: 8px;
     }
+
     .kbd {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       border: 1px solid var(--panel-stroke);
@@ -166,6 +283,152 @@
       border-radius: 6px;
       padding: 1px 6px;
       color: var(--fg);
+    }
+
+    .floating-toggle {
+      position: fixed;
+      right: 24px;
+      bottom: calc(env(safe-area-inset-bottom) + 24px);
+      z-index: 20;
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+      padding: 12px 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--panel-stroke);
+      color: var(--fg);
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 22px 40px rgba(0, 0, 0, 0.32);
+      transition: transform 220ms var(--ease), border-color 180ms var(--ease), box-shadow 260ms var(--ease);
+    }
+    .floating-toggle::before {
+      content: "☰";
+      font-size: 16px;
+      letter-spacing: normal;
+    }
+    .floating-toggle:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.42);
+    }
+    .floating-toggle:active {
+      transform: translateY(1px) scale(0.98);
+    }
+    .floating-toggle.is-pressed {
+      animation: btnPulse 340ms var(--ease);
+    }
+
+    .command-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 15, 18, 0.72);
+      backdrop-filter: blur(18px);
+      display: grid;
+      place-items: end center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 280ms var(--ease);
+      z-index: 30;
+    }
+    .command-overlay[hidden] { display: none; }
+    .command-overlay.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .command-dialog {
+      width: min(560px, 100%);
+      background: var(--bg);
+      border-radius: 18px 18px 0 0;
+      border: 1px solid var(--panel-stroke);
+      padding: 28px;
+      box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.35);
+      display: grid;
+      gap: 24px;
+      transform: translateY(30px);
+      opacity: 0;
+      transition: transform 320ms var(--ease), opacity 260ms var(--ease);
+    }
+    .command-overlay.is-visible .command-dialog {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .command-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .command-head h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px 24px;
+    }
+    .command-item {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .command-item strong {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+    .quick-actions {
+      display: grid;
+      gap: 10px;
+    }
+    .quick-actions .btn-row { justify-content: flex-start; }
+
+    .dict-groups {
+      display: grid;
+      gap: 10px;
+      width: 100%;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .dict-group {
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--panel-stroke);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    .dict-group-title {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+    .dict-note {
+      font-size: 11px;
+      color: var(--fg-dim);
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 720px) {
+      .controls label { grid-column: span 12; }
+      .controls .slot { grid-column: span 12; flex-wrap: wrap; }
+      .panel-head { flex-wrap: wrap; }
+      .floating-toggle {
+        right: 16px;
+        bottom: calc(env(safe-area-inset-bottom) + 16px);
+      }
+      .command-dialog {
+        border-radius: 18px 18px 0 0;
+        padding: 22px 18px;
+      }
     }
 
     /* noUiSlider theme tweak */
@@ -184,97 +447,216 @@
       text-align: right;
       font-variant-numeric: tabular-nums;
       color: var(--fg-dim);
+      margin-left: auto;
     }
 
     /* Reduce motion friendly */
     @media (prefers-reduced-motion: reduce) {
       .word { transition: none !important; }
+      .panel,
+      .panel:hover,
+      .panel-body,
+      .btn,
+      .floating-toggle,
+      .command-dialog,
+      .command-overlay,
+      .dict-group { transition: none !important; animation: none !important; }
+      .panel:hover,
+      .btn:hover,
+      .btn:active,
+      .floating-toggle:hover,
+      .floating-toggle:active { transform: none !important; box-shadow: none !important; }
     }
   </style>
 </head>
 <body data-theme="dark">
   <div class="app">
     <!-- Controls -->
-    <div class="panel">
-      <div class="controls">
-        <!-- Speed -->
-        <label for="speed">Скорость (мс)</label>
-        <div class="slot">
-          <div id="speedSlider"></div>
-          <div class="value-badge" id="speedVal">400</div>
+    <div class="panel controls-panel" id="controlsPanel" data-collapsed="false">
+      <div class="panel-head">
+        <div class="panel-title">Настройки</div>
+        <button class="btn ghost icon-btn" id="toggleControlsBtn" aria-controls="controlsPanelBody" aria-expanded="true">Скрыть панель</button>
+      </div>
+      <div class="panel-body" id="controlsPanelBody">
+        <div class="controls">
+          <!-- Speed -->
+          <label for="speed">Скорость (мс)</label>
+          <div class="slot">
+            <div id="speedSlider"></div>
+            <div class="value-badge" id="speedVal">400</div>
+            <div class="btn-row">
+              <button class="btn" id="speedDown">− Медленнее</button>
+              <button class="btn" id="speedUp">+ Быстрее</button>
+            </div>
+          </div>
+
+          <!-- Size -->
+          <label for="size">Размер</label>
+          <div class="slot">
+            <div id="sizeSlider"></div>
+            <div class="value-badge" id="sizeVal">1.00×</div>
+            <div class="btn-row">
+              <button class="btn" id="sizeDown">− Меньше</button>
+              <button class="btn" id="sizeUp">+ Больше</button>
+            </div>
+          </div>
+
+          <!-- Columns -->
+          <label for="cols">Слов за раз</label>
+          <div class="slot">
+            <select id="cols">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+            <div class="btn-row">
+              <button class="btn" id="cols1">1</button>
+              <button class="btn" id="cols2">2</button>
+              <button class="btn" id="cols3">3</button>
+            </div>
+            <div class="btn-row">
+              <button class="btn primary" id="pauseBtn">Пауза</button>
+              <button class="btn" id="fsBtn">На весь экран</button>
+            </div>
+          </div>
+
+          <!-- Font -->
+          <label for="font">Шрифт</label>
+          <div class="slot">
+            <select id="font">
+              <option value="Inter, system-ui, Arial, sans-serif">Inter</option>
+              <option value="Montserrat, system-ui, Arial, sans-serif">Montserrat</option>
+              <option value="Merriweather, Georgia, serif">Merriweather</option>
+              <option value="PT Sans, Arial, sans-serif">PT Sans</option>
+              <option value="PT Serif, Georgia, serif">PT Serif</option>
+              <option value="Fira Sans, Arial, sans-serif">Fira Sans</option>
+              <option value="JetBrains Mono, monospace">JetBrains Mono</option>
+              <option value="Space Mono, monospace">Space Mono</option>
+              <option value="Playfair Display, Georgia, serif">Playfair Display</option>
+              <option value="Source Sans 3, Arial, sans-serif">Source Sans 3</option>
+            </select>
+            <select id="theme">
+              <option value="dark">Тёмная</option>
+              <option value="light">Светлая</option>
+              <option value="contrast">Контрастная</option>
+            </select>
+            <label class="btn" style="display:flex;align-items:center;gap:8px;">
+              <input id="animToggle" type="checkbox" checked style="accent-color:var(--accent)"> Анимация
+            </label>
+          </div>
+
+          <!-- External words -->
+          <label for="url">Слова по URL</label>
+          <div class="slot">
+            <input id="url" type="text" placeholder="https://... (txt: одно слово в строке)" />
+            <button class="btn primary" id="loadBtn">Загрузить</button>
+            <button class="btn danger" id="resetWordsBtn" title="Вернуть встроенный словарь">Сброс слов</button>
+          </div>
+
+          <!-- Presets -->
+          <label>Готовые словари</label>
+          <div class="slot">
+            <div class="dict-groups">
+              <div class="dict-group">
+                <div class="dict-group-title">Русский</div>
+                <div class="btn-row">
+                  <button class="btn" data-preset="ru-lexicon">15 000 базовых слов</button>
+                </div>
+                <div class="dict-note">Широкий охват лексики без тематических ограничений.</div>
+              </div>
+              <div class="dict-group">
+                <div class="dict-group-title">Українська</div>
+                <div class="btn-row">
+                  <button class="btn" data-preset="uk-lexicon">15 000 повсякденних слів</button>
+                </div>
+                <div class="dict-note">Актуальні слова сучасної української мови.</div>
+              </div>
+              <div class="dict-group">
+                <div class="dict-group-title">English</div>
+                <div class="btn-row">
+                  <button class="btn" data-preset="en-lexicon">15 000 everyday words</button>
+                </div>
+                <div class="dict-note">Общий словарь без профессиональных тематик.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Size -->
-        <label for="size">Размер</label>
-        <div class="slot">
-          <div id="sizeSlider"></div>
-          <div class="value-badge" id="sizeVal">1.00×</div>
-        </div>
-
-        <!-- Columns -->
-        <label for="cols">Слов за раз</label>
-        <div class="slot">
-          <select id="cols">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-          </select>
-          <button class="btn" id="pauseBtn">Пауза</button>
-          <button class="btn" id="fsBtn">На весь экран</button>
-        </div>
-
-        <!-- Font -->
-        <label for="font">Шрифт</label>
-        <div class="slot">
-          <select id="font">
-            <option value="Inter, system-ui, Arial, sans-serif">Inter</option>
-            <option value="Montserrat, system-ui, Arial, sans-serif">Montserrat</option>
-            <option value="Merriweather, Georgia, serif">Merriweather</option>
-            <option value="PT Sans, Arial, sans-serif">PT Sans</option>
-            <option value="PT Serif, Georgia, serif">PT Serif</option>
-            <option value="Fira Sans, Arial, sans-serif">Fira Sans</option>
-            <option value="JetBrains Mono, monospace">JetBrains Mono</option>
-            <option value="Space Mono, monospace">Space Mono</option>
-            <option value="Playfair Display, Georgia, serif">Playfair Display</option>
-            <option value="Source Sans 3, Arial, sans-serif">Source Sans 3</option>
-          </select>
-          <select id="theme">
-            <option value="dark">Тёмная</option>
-            <option value="light">Светлая</option>
-            <option value="contrast">Контрастная</option>
-          </select>
-          <label class="btn" style="display:flex;align-items:center;gap:8px;">
-            <input id="animToggle" type="checkbox" checked style="accent-color:var(--accent)"> Анимация
-          </label>
-        </div>
-
-        <!-- External words -->
-        <label for="url">Слова по URL</label>
-        <div class="slot">
-          <input id="url" type="text" placeholder="https://... (txt: одно слово в строке)" />
-          <button class="btn primary" id="loadBtn">Загрузить</button>
-          <button class="btn danger" id="resetWordsBtn" title="Вернуть встроенный словарь">Сброс слов</button>
+        <div class="status-bar">
+          <div>Слов: <span id="countWords">—</span></div>
+          <div>Источник: <span id="source">встроенный</span></div>
         </div>
       </div>
     </div>
-
     <!-- Words -->
     <div class="panel words-panel">
       <div id="words" class="words cols-1" aria-hidden="true">
         <div class="word">Готов?</div>
       </div>
     </div>
+  </div>
 
-    <!-- Footer -->
-    <div class="footer">
-      <div>
-        <span class="kbd">Space</span> пауза •
-        <span class="kbd">↑/↓</span> скорость •
-        <span class="kbd">←/→</span> размер •
-        <span class="kbd">1/2/3</span> колонки •
-        <span class="kbd">F</span> фуллскрин
+  <button class="floating-toggle" id="commandToggle" aria-haspopup="dialog" aria-controls="commandOverlay" aria-expanded="false">Команды</button>
+
+  <div class="command-overlay" id="commandOverlay" hidden>
+    <div class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="commandTitle" tabindex="-1">
+      <div class="command-head">
+        <h2 id="commandTitle">Управление</h2>
+        <button class="btn" id="commandClose">Закрыть</button>
       </div>
-      <div id="status">Слов: <span id="countWords">—</span> • Источник: <span id="source">встроенный</span></div>
+      <div class="quick-actions">
+        <div class="command-item">
+          <strong>Мгновенные действия</strong>
+          <div class="btn-row">
+            <button class="btn primary" id="overlayPause">Пауза / Старт</button>
+            <button class="btn" id="overlayFullscreen">Весь экран</button>
+          </div>
+        </div>
+        <div class="command-item">
+          <strong>Скорость</strong>
+          <div class="btn-row">
+            <button class="btn" id="overlaySpeedDown">− Медленнее</button>
+            <button class="btn" id="overlaySpeedUp">+ Быстрее</button>
+          </div>
+        </div>
+        <div class="command-item">
+          <strong>Размер</strong>
+          <div class="btn-row">
+            <button class="btn" id="overlaySizeDown">− Меньше</button>
+            <button class="btn" id="overlaySizeUp">+ Больше</button>
+          </div>
+        </div>
+        <div class="command-item">
+          <strong>Колонки</strong>
+          <div class="btn-row">
+            <button class="btn" data-cols="1">1</button>
+            <button class="btn" data-cols="2">2</button>
+            <button class="btn" data-cols="3">3</button>
+          </div>
+        </div>
+      </div>
+      <div class="command-grid">
+        <div class="command-item">
+          <strong>Пауза</strong>
+          <div><span class="kbd">Space</span> — запуск / стоп</div>
+        </div>
+        <div class="command-item">
+          <strong>Скорость</strong>
+          <div><span class="kbd">↑</span> / <span class="kbd">↓</span> — быстрее / медленнее</div>
+        </div>
+        <div class="command-item">
+          <strong>Размер</strong>
+          <div><span class="kbd">←</span> / <span class="kbd">→</span> — меньше / больше</div>
+        </div>
+        <div class="command-item">
+          <strong>Колонки</strong>
+          <div><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span></div>
+        </div>
+        <div class="command-item">
+          <strong>Экран</strong>
+          <div><span class="kbd">F</span> — полный экран</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -310,6 +692,33 @@
       "мислення","увага","плинність","дотик","сила","інерція","крихкість","градація","квазі","ритмізація"
     ];
 
+    const dictionaryPresets = {
+      "ru-lexicon": {
+        label: "RU · 15K базовых слов",
+        language: "ru",
+        url: "data/ru.txt",
+        size: 15000,
+        words: null,
+        loading: null
+      },
+      "uk-lexicon": {
+        label: "UA · 15K слів",
+        language: "uk",
+        url: "data/uk.txt",
+        size: 15000,
+        words: null,
+        loading: null
+      },
+      "en-lexicon": {
+        label: "EN · 15K words",
+        language: "en",
+        url: "data/en.txt",
+        size: 15000,
+        words: null,
+        loading: null
+      }
+    };
+
     // -----------------------------
     // Состояние и настройки
     // -----------------------------
@@ -319,6 +728,16 @@
     const sizeVal = $("#sizeVal");
     const countWordsEl = $("#countWords");
     const sourceEl = $("#source");
+    const commandToggle = $("#commandToggle");
+    const commandOverlay = $("#commandOverlay");
+    const commandClose = $("#commandClose");
+    const commandDialog = commandOverlay ? commandOverlay.querySelector('.command-dialog') : null;
+    const controlsPanel = document.getElementById('controlsPanel');
+    const controlsPanelBody = document.getElementById('controlsPanelBody');
+    const toggleControlsBtn = document.getElementById('toggleControlsBtn');
+    const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));
+    const pressableElements = Array.from(document.querySelectorAll('.btn, .floating-toggle'));
+    const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     const state = {
       running: true,
@@ -330,10 +749,15 @@
       animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
       words: [...builtinWords],
       source: "встроенный",
+      sourceKind: "builtin",
+      presetId: null,
+      controlsCollapsed: false,
       recentWindow: 200,    // анти-повторы
       lastSeen: [],
       rngSeed: Date.now() % 2**31
     };
+
+    let toastTimer = 0;
 
     // -----------------------------
     // PRNG с сидом (xorshift32)
@@ -371,6 +795,88 @@
       const arr = new Array(n);
       for (let i = 0; i < n; i++) arr[i] = pickWord();
       return arr;
+    }
+
+    function renderPresetSelection() {
+      presetButtons.forEach(btn => {
+        const id = btn.getAttribute('data-preset');
+        btn.classList.toggle('primary', id === state.presetId);
+        btn.setAttribute('aria-pressed', id === state.presetId ? 'true' : 'false');
+      });
+    }
+
+    async function ensurePresetWords(preset) {
+      if (Array.isArray(preset.words) && preset.words.length > 0) {
+        return preset.words;
+      }
+      if (!preset.url) {
+        throw new Error('Нет источника словаря.');
+      }
+      if (!preset.loading) {
+        preset.loading = fetch(preset.url, { cache: 'no-store' })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error('HTTP ' + res.status);
+            }
+            return res.text();
+          })
+          .then(text => {
+            const list = parseWords(text);
+            if (list.length < 10000) {
+              throw new Error('Получено слишком мало слов (' + list.length + ').');
+            }
+            preset.words = list;
+            return list;
+          })
+          .finally(() => {
+            preset.loading = null;
+          });
+      }
+      return preset.loading;
+    }
+
+    async function applyPresetById(id, opts = {}) {
+      const preset = dictionaryPresets[id];
+      if (!preset) return false;
+      try {
+        const words = await ensurePresetWords(preset);
+        applyPreset(preset, words, { id, ...opts });
+        return true;
+      } catch (error) {
+        console.error('Failed to load preset', id, error);
+        if (!opts.silent) {
+          toast('Не удалось загрузить словарь: ' + (error.message || error), true);
+        }
+        return false;
+      }
+    }
+
+    function applyPreset(preset, words, { id = null, silent = false, skipPersist = false } = {}) {
+      state.words = Array.isArray(words) ? [...words] : [];
+      state.lastSeen.length = 0;
+      state.source = preset.label;
+      state.sourceKind = 'preset';
+      state.presetId = id;
+      countWordsEl.textContent = String(state.words.length);
+      sourceEl.textContent = state.source;
+      renderPresetSelection();
+      if (!silent) {
+        toast(`Словарь «${preset.label}» загружен (${state.words.length}).`);
+      }
+      if (!skipPersist) {
+        persist();
+      }
+    }
+
+    function renderControlsCollapse() {
+      if (!controlsPanel) return;
+      const collapsed = !!state.controlsCollapsed;
+      controlsPanel.setAttribute('data-collapsed', collapsed ? 'true' : 'false');
+      controlsPanelBody?.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+      if (toggleControlsBtn) {
+        toggleControlsBtn.textContent = collapsed ? 'Показать панель' : 'Скрыть панель';
+        toggleControlsBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      }
     }
 
     // -----------------------------
@@ -451,6 +957,13 @@
     // -----------------------------
     const speedSlider = document.getElementById('speedSlider');
     const sizeSlider = document.getElementById('sizeSlider');
+    const speedDownBtn = document.getElementById('speedDown');
+    const speedUpBtn = document.getElementById('speedUp');
+    const sizeDownBtn = document.getElementById('sizeDown');
+    const sizeUpBtn = document.getElementById('sizeUp');
+    const cols1Btn = document.getElementById('cols1');
+    const cols2Btn = document.getElementById('cols2');
+    const cols3Btn = document.getElementById('cols3');
 
     noUiSlider.create(speedSlider, {
       start: state.interval,
@@ -464,6 +977,7 @@
     });
     speedSlider.noUiSlider.on('change', (v) => {
       state.interval = Math.round(parseFloat(v[0]));
+      persist();
     });
 
     noUiSlider.create(sizeSlider, {
@@ -477,6 +991,9 @@
       sizeVal.textContent = state.sizeFactor.toFixed(2) + "×";
       document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
     });
+    sizeSlider.noUiSlider.on('set', () => {
+      persist();
+    });
 
     // Dropdowns and buttons
     const colsSel = document.getElementById('cols');
@@ -488,6 +1005,13 @@
     const urlInput = document.getElementById('url');
     const loadBtn = document.getElementById('loadBtn');
     const resetWordsBtn = document.getElementById('resetWordsBtn');
+    const overlayPauseBtn = document.getElementById('overlayPause');
+    const overlayFullscreenBtn = document.getElementById('overlayFullscreen');
+    const overlaySpeedDownBtn = document.getElementById('overlaySpeedDown');
+    const overlaySpeedUpBtn = document.getElementById('overlaySpeedUp');
+    const overlaySizeDownBtn = document.getElementById('overlaySizeDown');
+    const overlaySizeUpBtn = document.getElementById('overlaySizeUp');
+    const overlayColsBtns = commandOverlay ? commandOverlay.querySelectorAll('[data-cols]') : [];
 
     colsSel.value = String(state.cols);
     fontSel.value = state.font;
@@ -519,21 +1043,153 @@
     pauseBtn.addEventListener('click', () => toggleRun());
     fsBtn.addEventListener('click', () => toggleFullscreen());
 
+    speedDownBtn?.addEventListener('click', () => nudgeSpeed(+50));
+    speedUpBtn?.addEventListener('click', () => nudgeSpeed(-50));
+    sizeDownBtn?.addEventListener('click', () => nudgeSize(-0.05));
+    sizeUpBtn?.addEventListener('click', () => nudgeSize(+0.05));
+    cols1Btn?.addEventListener('click', () => setCols(1));
+    cols2Btn?.addEventListener('click', () => setCols(2));
+    cols3Btn?.addEventListener('click', () => setCols(3));
+
     loadBtn.addEventListener('click', () => loadWordsFromURL());
     resetWordsBtn.addEventListener('click', () => {
       state.words = [...builtinWords];
       state.lastSeen.length = 0;
       state.source = "встроенный";
+      state.sourceKind = 'builtin';
+      state.presetId = null;
       countWordsEl.textContent = String(state.words.length);
       sourceEl.textContent = state.source;
+      renderPresetSelection();
       toast("Вернулся встроенный словарь.");
       persist();
     });
 
+    toggleControlsBtn?.addEventListener('click', () => {
+      state.controlsCollapsed = !state.controlsCollapsed;
+      renderControlsCollapse();
+      persist();
+    });
+
+    overlayPauseBtn?.addEventListener('click', () => toggleRun());
+    overlayFullscreenBtn?.addEventListener('click', () => toggleFullscreen());
+    overlaySpeedDownBtn?.addEventListener('click', () => nudgeSpeed(+50));
+    overlaySpeedUpBtn?.addEventListener('click', () => nudgeSpeed(-50));
+    overlaySizeDownBtn?.addEventListener('click', () => nudgeSize(-0.05));
+    overlaySizeUpBtn?.addEventListener('click', () => nudgeSize(+0.05));
+    overlayColsBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = parseInt(btn.getAttribute('data-cols') || '1', 10);
+        setCols(target);
+      });
+    });
+
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-preset');
+        if (!id || btn.classList.contains('is-loading')) return;
+        presetButtons.forEach(b => b.classList.remove('is-loading'));
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        const ok = await applyPresetById(id);
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+        if (ok) {
+          btn.classList.add('is-pressed');
+          setTimeout(() => btn.classList.remove('is-pressed'), 420);
+        }
+      });
+    });
+
+    if (overlayPauseBtn) {
+      overlayPauseBtn.textContent = state.running ? "Пауза" : "Старт";
+    }
+
+    let lastFocusBeforeOverlay = null;
+
+    commandToggle?.addEventListener('click', () => {
+      if (commandOverlay?.hidden) {
+        openCommandOverlay();
+      } else {
+        closeCommandOverlay();
+      }
+    });
+    commandClose?.addEventListener('click', () => closeCommandOverlay());
+    commandOverlay?.addEventListener('click', (event) => {
+      if (event.target === commandOverlay) {
+        closeCommandOverlay();
+      }
+    });
+
+    pressableElements.forEach(el => {
+      el.addEventListener('click', () => {
+        if (reduceMotion) return;
+        el.classList.remove('is-pressed');
+        // перезапуск анимации
+        void el.offsetWidth;
+        el.classList.add('is-pressed');
+      });
+      el.addEventListener('animationend', () => el.classList.remove('is-pressed'));
+    });
+
+    function openCommandOverlay() {
+      if (!commandOverlay) return;
+      lastFocusBeforeOverlay = document.activeElement;
+      commandOverlay.classList.remove('is-closing');
+      commandOverlay.hidden = false;
+      requestAnimationFrame(() => {
+        commandOverlay.classList.add('is-visible');
+        commandToggle?.setAttribute('aria-expanded', 'true');
+        commandDialog?.focus();
+      });
+      document.addEventListener('keydown', handleCommandKey);
+    }
+
+    function closeCommandOverlay() {
+      if (!commandOverlay) return;
+      const finalize = () => {
+        commandOverlay.hidden = true;
+        commandOverlay.classList.remove('is-closing');
+      };
+      commandOverlay.classList.remove('is-visible');
+      commandToggle?.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('keydown', handleCommandKey);
+      if (reduceMotion) {
+        finalize();
+      } else {
+        commandOverlay.classList.add('is-closing');
+        const handle = (event) => {
+          if (event.target === commandOverlay) {
+            commandOverlay.removeEventListener('transitionend', handle);
+            finalize();
+          }
+        };
+        commandOverlay.addEventListener('transitionend', handle);
+      }
+      if (lastFocusBeforeOverlay && typeof lastFocusBeforeOverlay.focus === 'function') {
+        lastFocusBeforeOverlay.focus();
+      } else {
+        commandToggle?.focus();
+      }
+    }
+
+    function handleCommandKey(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeCommandOverlay();
+      }
+    }
+
     // -----------------------------
     // Keyboard
     // -----------------------------
-    tinykeys(window, {
+    const tinykeysGlobal = typeof window !== 'undefined' ? window.tinykeys : null;
+    const tinykeysFn = (typeof tinykeysGlobal === 'function')
+      ? tinykeysGlobal
+      : (tinykeysGlobal && typeof tinykeysGlobal.tinykeys === 'function')
+        ? tinykeysGlobal.tinykeys
+        : null;
+    const keyBindings = {
       " ": (e) => { e.preventDefault(); toggleRun(); },
       "ArrowUp": (e) => { e.preventDefault(); nudgeSpeed(-50); },
       "ArrowDown": (e) => { e.preventDefault(); nudgeSpeed(+50); },
@@ -543,18 +1199,30 @@
       "Digit2": () => setCols(2),
       "Digit3": () => setCols(3),
       "KeyF": () => toggleFullscreen()
-    });
+    };
+    if (tinykeysFn) {
+      tinykeysFn(window, keyBindings);
+    } else {
+      window.addEventListener('keydown', (event) => {
+        const handler = keyBindings[event.key] || keyBindings[event.code];
+        if (typeof handler === 'function') {
+          handler(event);
+        }
+      });
+    }
 
     function nudgeSpeed(delta) {
       const nv = Math.min(1500, Math.max(150, state.interval + delta));
       speedSlider.noUiSlider.set(nv);
       state.interval = nv;
+      persist();
     }
     function nudgeSize(delta) {
       const nv = Math.min(2.0, Math.max(0.6, state.sizeFactor + delta));
       sizeSlider.noUiSlider.set(nv);
       state.sizeFactor = nv;
       document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
+      persist();
     }
     function setCols(n) {
       colsSel.value = String(n);
@@ -564,6 +1232,9 @@
     function toggleRun() {
       state.running = !state.running;
       pauseBtn.textContent = state.running ? "Пауза" : "Старт";
+      if (overlayPauseBtn) {
+        overlayPauseBtn.textContent = state.running ? "Пауза" : "Старт";
+      }
     }
 
     // -----------------------------
@@ -595,10 +1266,14 @@
         }
         state.words = list;
         state.lastSeen.length = 0;
-        state.source = "URL";
+        const host = (() => { try { return new URL(url).hostname || "URL"; } catch { return "URL"; } })();
+        state.source = host;
+        state.sourceKind = 'url';
+        state.presetId = null;
         countWordsEl.textContent = String(state.words.length);
         sourceEl.textContent = state.source;
-        toast("Слова обновлены: " + list.length);
+        renderPresetSelection();
+        toast(`Слова обновлены (${list.length}) из ${state.source}.`);
         persist();
       } catch (e) {
         toast("Ошибка загрузки: " + e.message, true);
@@ -625,7 +1300,6 @@
     // -----------------------------
     // Тостер
     // -----------------------------
-    let toastTimer = 0;
     function toast(msg, isErr = false) {
       let t = document.getElementById('toast');
       if (!t) {
@@ -634,7 +1308,7 @@
         t.style.position = 'fixed';
         t.style.left = '50%';
         t.style.bottom = '20px';
-        t.style.transform = 'translateX(-50%)';
+        t.style.transform = 'translate(-50%, 0)';
         t.style.padding = '10px 14px';
         t.style.borderRadius = '10px';
         t.style.border = '1px solid var(--panel-stroke)';
@@ -644,13 +1318,19 @@
         t.style.maxWidth = '90vw';
         t.style.whiteSpace = 'pre-line';
         t.style.pointerEvents = 'none';
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 260ms var(--ease), transform 260ms var(--ease)';
         document.body.appendChild(t);
       }
       t.style.color = isErr ? 'var(--danger)' : 'var(--fg)';
       t.textContent = msg;
       clearTimeout(toastTimer);
       t.style.opacity = '1';
-      toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+      t.style.transform = 'translate(-50%, -8px)';
+      toastTimer = setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translate(-50%, 0)';
+      }, 2200);
     }
 
     // -----------------------------
@@ -667,39 +1347,72 @@
           theme: state.theme,
           animate: state.animate,
           source: state.source,
-          // словарь не сохраняем если внешний — может быть огромным; сохраняем только встроенный флаг
-          useBuiltin: (state.source !== "URL")
+          sourceKind: state.sourceKind,
+          presetId: state.presetId,
+          controlsCollapsed: state.controlsCollapsed,
+          // флаг для обратной совместимости с предыдущими версиями
+          useBuiltin: (state.sourceKind !== 'url')
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {}
     }
-    function restore() {
+    async function restore() {
+      let pendingPreset = null;
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (typeof data.interval === 'number') {
-          state.interval = Math.min(1500, Math.max(150, data.interval));
-          speedSlider.noUiSlider.set(state.interval);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (typeof data.interval === 'number') {
+            state.interval = Math.min(1500, Math.max(150, data.interval));
+            speedSlider.noUiSlider.set(state.interval);
+          }
+          if (typeof data.sizeFactor === 'number') {
+            state.sizeFactor = Math.min(2.0, Math.max(0.6, data.sizeFactor));
+            sizeSlider.noUiSlider.set(state.sizeFactor);
+            document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
+          }
+          if ([1,2,3].includes(data.cols)) {
+            state.cols = data.cols; colsSel.value = String(state.cols);
+            ensureColumns(state.cols);
+          }
+          if (data.font) { state.font = data.font; fontSel.value = state.font; document.body.style.fontFamily = state.font; }
+          if (data.theme) { state.theme = data.theme; themeSel.value = state.theme; document.body.setAttribute('data-theme', state.theme); }
+          if (typeof data.animate === 'boolean') { state.animate = data.animate; animToggle.checked = state.animate; }
+          if (typeof data.controlsCollapsed === 'boolean') { state.controlsCollapsed = data.controlsCollapsed; }
+          if (typeof data.sourceKind === 'string') { state.sourceKind = data.sourceKind; }
+          if (typeof data.source === 'string') { state.source = data.source; }
+          if (typeof data.presetId === 'string') { state.presetId = data.presetId; pendingPreset = data.presetId; }
+          if (state.sourceKind === 'builtin') {
+            state.words = [...builtinWords];
+            state.source = 'встроенный';
+          } else if (state.sourceKind === 'preset' && pendingPreset) {
+            // применим ниже, чтобы не перезаписывать persist во время восстановления
+          } else if (state.sourceKind === 'url') {
+            state.words = [...builtinWords];
+            state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
+          } else if (data.useBuiltin === false) {
+            state.sourceKind = 'url';
+            state.words = [...builtinWords];
+            state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
+          }
         }
-        if (typeof data.sizeFactor === 'number') {
-          state.sizeFactor = Math.min(2.0, Math.max(0.6, data.sizeFactor));
-          sizeSlider.noUiSlider.set(state.sizeFactor);
-          document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
-        }
-        if ([1,2,3].includes(data.cols)) {
-          state.cols = data.cols; colsSel.value = String(state.cols);
-          ensureColumns(state.cols);
-        }
-        if (data.font) { state.font = data.font; fontSel.value = state.font; document.body.style.fontFamily = state.font; }
-        if (data.theme) { state.theme = data.theme; themeSel.value = state.theme; document.body.setAttribute('data-theme', state.theme); }
-        if (typeof data.animate === 'boolean') { state.animate = data.animate; animToggle.checked = state.animate; }
-        if (data.useBuiltin === false) {
-          // если ранее был внешний словарь, предупреждаем, что надо снова загрузить
+      } catch (err) {
+        console.warn('Не удалось восстановить состояние', err);
+      }
+      renderControlsCollapse();
+      renderPresetSelection();
+      if (state.sourceKind === 'preset' && pendingPreset) {
+        const loaded = await applyPresetById(pendingPreset, { silent: true, skipPersist: true });
+        if (!loaded) {
+          state.sourceKind = 'builtin';
+          state.presetId = null;
           state.words = [...builtinWords];
-          state.source = "встроенный";
+          state.source = 'встроенный';
+          countWordsEl.textContent = String(state.words.length);
+          sourceEl.textContent = state.source;
+          renderPresetSelection();
         }
-      } catch {}
+      }
     }
 
     // -----------------------------
@@ -722,11 +1435,15 @@
           delete state._savedInterval;
         }
       }, { passive: true });
-      toast("Space — пауза, F — фуллскрин.");
+      toast("Команды и словари — кнопка внизу и пресеты вверху.");
     }
 
-    restore();
-    boot();
+    async function init() {
+      await restore();
+      boot();
+    }
+
+    init();
 
     // Вежливый предел скорости: предупреждаем при экстремальных значениях
     speedSlider.noUiSlider.on('set', (v) => {

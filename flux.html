@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Word Flux — быстрые случайные слова</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- Fonts (10 families) via Bunny (без лишней телеметрии) -->
+  <link rel="preconnect" href="https://fonts.bunny.net" />
+  <link href="https://fonts.bunny.net/css?family=inter:400,700|montserrat:400,700|merriweather:400,700|pt-sans:400,700|pt-serif:400,700|fira-sans:400,700|jetbrains-mono:400,700|space-mono:400,700|playfair-display:400,700|source-sans-3:400,700&display=swap" rel="stylesheet" />
+
+  <!-- noUiSlider styles -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.css"/>
+
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --fg: #eaeaea;
+      --fg-dim: #b7b7bd;
+      --accent: #8ab4ff;
+      --danger: #ff6b6b;
+      --panel: rgba(255,255,255,0.06);
+      --panel-stroke: rgba(255,255,255,0.12);
+      --spacing: 12px;
+      --radius: 12px;
+      --sizeFactor: 1; /* множитель размера от ползунка */
+    }
+    [data-theme="light"] {
+      --bg: #fafafa;
+      --fg: #111;
+      --fg-dim: #444;
+      --panel: rgba(0,0,0,0.05);
+      --panel-stroke: rgba(0,0,0,0.12);
+      --accent: #2d6cdf;
+    }
+    [data-theme="contrast"] {
+      --bg: #000;
+      --fg: #fff;
+      --fg-dim: #fff;
+      --panel: #000;
+      --panel-stroke: #fff;
+      --accent: #fff700;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Inter, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100%;
+      gap: var(--spacing);
+      padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-stroke);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      backdrop-filter: blur(6px);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px 12px;
+      align-items: center;
+    }
+    .controls .group {
+      display: contents;
+    }
+    .controls label {
+      grid-column: span 2;
+      font-size: 14px;
+      color: var(--fg-dim);
+      user-select: none;
+    }
+    .controls .slot {
+      grid-column: span 4;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .controls select, .controls input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-stroke);
+      background: transparent;
+      color: var(--fg);
+      outline: none;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--panel-stroke);
+      background: transparent;
+      color: var(--fg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .btn.primary { border-color: var(--accent); }
+    .btn.danger { border-color: var(--danger); color: var(--danger); }
+
+    .words-panel {
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      position: relative;
+      overflow: hidden;
+    }
+    .words {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      align-content: center;
+      justify-content: center;
+      gap: 0;
+      text-align: center;
+      padding: 8px;
+    }
+    .words.cols-1 {
+      grid-template-columns: 1fr;
+    }
+    .words.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 6vmin;
+    }
+    .words.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: 5vmin;
+    }
+    .word {
+      line-height: 1.05;
+      letter-spacing: .01em;
+      will-change: opacity, transform;
+      /* База размера под разные колонки */
+    }
+    .words.cols-1 .word { font-size: clamp(24px, calc(8.0vw * var(--sizeFactor)), 128px); }
+    .words.cols-2 .word { font-size: clamp(20px, calc(6.2vw * var(--sizeFactor)), 96px); }
+    .words.cols-3 .word { font-size: clamp(18px, calc(5.0vw * var(--sizeFactor)), 72px); }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--fg-dim);
+      flex-wrap: wrap;
+    }
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      border: 1px solid var(--panel-stroke);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: var(--fg);
+    }
+
+    /* noUiSlider theme tweak */
+    .noUi-target {
+      background: transparent;
+      border: 1px solid var(--panel-stroke);
+      box-shadow: none;
+    }
+    .noUi-handle {
+      border: 1px solid var(--panel-stroke);
+      background: var(--fg);
+      box-shadow: none;
+    }
+    .value-badge {
+      min-width: 56px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--fg-dim);
+    }
+
+    /* Reduce motion friendly */
+    @media (prefers-reduced-motion: reduce) {
+      .word { transition: none !important; }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="app">
+    <!-- Controls -->
+    <div class="panel">
+      <div class="controls">
+        <!-- Speed -->
+        <label for="speed">Скорость (мс)</label>
+        <div class="slot">
+          <div id="speedSlider"></div>
+          <div class="value-badge" id="speedVal">400</div>
+        </div>
+
+        <!-- Size -->
+        <label for="size">Размер</label>
+        <div class="slot">
+          <div id="sizeSlider"></div>
+          <div class="value-badge" id="sizeVal">1.00×</div>
+        </div>
+
+        <!-- Columns -->
+        <label for="cols">Слов за раз</label>
+        <div class="slot">
+          <select id="cols">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+          <button class="btn" id="pauseBtn">Пауза</button>
+          <button class="btn" id="fsBtn">На весь экран</button>
+        </div>
+
+        <!-- Font -->
+        <label for="font">Шрифт</label>
+        <div class="slot">
+          <select id="font">
+            <option value="Inter, system-ui, Arial, sans-serif">Inter</option>
+            <option value="Montserrat, system-ui, Arial, sans-serif">Montserrat</option>
+            <option value="Merriweather, Georgia, serif">Merriweather</option>
+            <option value="PT Sans, Arial, sans-serif">PT Sans</option>
+            <option value="PT Serif, Georgia, serif">PT Serif</option>
+            <option value="Fira Sans, Arial, sans-serif">Fira Sans</option>
+            <option value="JetBrains Mono, monospace">JetBrains Mono</option>
+            <option value="Space Mono, monospace">Space Mono</option>
+            <option value="Playfair Display, Georgia, serif">Playfair Display</option>
+            <option value="Source Sans 3, Arial, sans-serif">Source Sans 3</option>
+          </select>
+          <select id="theme">
+            <option value="dark">Тёмная</option>
+            <option value="light">Светлая</option>
+            <option value="contrast">Контрастная</option>
+          </select>
+          <label class="btn" style="display:flex;align-items:center;gap:8px;">
+            <input id="animToggle" type="checkbox" checked style="accent-color:var(--accent)"> Анимация
+          </label>
+        </div>
+
+        <!-- External words -->
+        <label for="url">Слова по URL</label>
+        <div class="slot">
+          <input id="url" type="text" placeholder="https://... (txt: одно слово в строке)" />
+          <button class="btn primary" id="loadBtn">Загрузить</button>
+          <button class="btn danger" id="resetWordsBtn" title="Вернуть встроенный словарь">Сброс слов</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Words -->
+    <div class="panel words-panel">
+      <div id="words" class="words cols-1" aria-hidden="true">
+        <div class="word">Готов?</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div>
+        <span class="kbd">Space</span> пауза •
+        <span class="kbd">↑/↓</span> скорость •
+        <span class="kbd">←/→</span> размер •
+        <span class="kbd">1/2/3</span> колонки •
+        <span class="kbd">F</span> фуллскрин
+      </div>
+      <div id="status">Слов: <span id="countWords">—</span> • Источник: <span id="source">встроенный</span></div>
+    </div>
+  </div>
+
+  <!-- External libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinykeys@3.0.0/dist/tinykeys.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/focus-visible/5.2.0/focus-visible.min.js"></script>
+
+  <script>
+    // -----------------------------
+    // Встроенный словарь (RU/UK/EN, разнородный)
+    // Можно заменить/расширить по URL.
+    // -----------------------------
+    const builtinWords = [
+      // RU
+      "поток","мысль","искры","ритм","слой","узор","скорость","тишина","выдох","пульс",
+      "контур","ветер","ядро","фокус","заряд","граница","сплин","выбор","штрих","вектор",
+      "смысл","шаг","порог","голос","связь","свет","тень","пласт","знак","сердце",
+      "остов","центр","шанс","пик","порог","порог","маркер","ракурс","скелет","линия",
+      // UK
+      "плин","мисль","ритм","лад","край","зерно","осердя","потік","візерунок","ступінь",
+      "шанс","зв'язок","світло","тінь","знак","обрій","поступ","коло","пласт","відлуння",
+      "вітер","рух","межа","ядро","форма","лад","прискорення","спокій","крок","відчуття",
+      // EN
+      "stream","spark","frame","pulse","vector","anchor","grain","breath","rhythm","pivot",
+      "focus","stride","pattern","edge","glow","shade","limit","chance","link","signal",
+      "tension","calm","sudden","quiet","noise","depth","layer","center","shift","arc",
+      // mixed extras
+      "абстракція","напрям","модуляція","гештальт","симетрія","хаос","порядок","інверсія","контраст","тон",
+      "semantic","syntax","entropy","clarity","intent","impact","balance","resonance","momentum","drift",
+      "flow","idea","sparkle","silence","vectoring","lumen","echo","kernel","axis","field",
+      "мислення","увага","плинність","дотик","сила","інерція","крихкість","градація","квазі","ритмізація"
+    ];
+
+    // -----------------------------
+    // Состояние и настройки
+    // -----------------------------
+    const $ = (q) => document.querySelector(q);
+    const wordsEl = $("#words");
+    const speedVal = $("#speedVal");
+    const sizeVal = $("#sizeVal");
+    const countWordsEl = $("#countWords");
+    const sourceEl = $("#source");
+
+    const state = {
+      running: true,
+      interval: 400,        // мс между сменами
+      sizeFactor: 1.0,      // множитель размера
+      cols: 1,              // 1..3
+      font: "Inter, system-ui, Arial, sans-serif",
+      theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? "dark" : "light",
+      animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      words: [...builtinWords],
+      source: "встроенный",
+      recentWindow: 200,    // анти-повторы
+      lastSeen: [],
+      rngSeed: Date.now() % 2**31
+    };
+
+    // -----------------------------
+    // PRNG с сидом (xorshift32)
+    // -----------------------------
+    function rng() {
+      let x = state.rngSeed |= 0;
+      x ^= x << 13;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      state.rngSeed = x;
+      // unsigned to positive
+      return (x >>> 0) / 4294967296;
+    }
+
+    function pickWord() {
+      const pool = state.words;
+      if (pool.length === 0) return "";
+      let candidate = "";
+      let tries = 0;
+      do {
+        const idx = Math.floor(rng() * pool.length);
+        candidate = pool[idx];
+        tries++;
+        if (tries > 12) break; // не бесконечно
+      } while (state.lastSeen.includes(candidate));
+      // обновить окно
+      state.lastSeen.push(candidate);
+      if (state.lastSeen.length > Math.min(state.recentWindow, Math.max(20, Math.floor(pool.length * 0.3)))) {
+        state.lastSeen.shift();
+      }
+      return candidate;
+    }
+
+    function wordsBatch(n) {
+      const arr = new Array(n);
+      for (let i = 0; i < n; i++) arr[i] = pickWord();
+      return arr;
+    }
+
+    // -----------------------------
+    // Рендер колонок
+    // -----------------------------
+    function ensureColumns(n) {
+      const current = wordsEl.children.length;
+      wordsEl.classList.toggle("cols-1", n === 1);
+      wordsEl.classList.toggle("cols-2", n === 2);
+      wordsEl.classList.toggle("cols-3", n === 3);
+      if (current < n) {
+        for (let i = current; i < n; i++) {
+          const d = document.createElement("div");
+          d.className = "word";
+          d.textContent = "…";
+          wordsEl.appendChild(d);
+        }
+      } else if (current > n) {
+        for (let i = current - 1; i >= n; i--) {
+          wordsEl.removeChild(wordsEl.children[i]);
+        }
+      }
+    }
+
+    // -----------------------------
+    // Тикер
+    // -----------------------------
+    let rafId = 0;
+    let lastTs = 0;
+    let acc = 0;
+
+    function step(ts) {
+      if (!state.running) { rafId = requestAnimationFrame(step); return; }
+      if (!lastTs) lastTs = ts;
+      const dt = ts - lastTs;
+      lastTs = ts;
+      acc += dt;
+
+      // пропуск кадров, если надо
+      while (acc >= state.interval) {
+        acc -= state.interval;
+        // обновить слова
+        const batch = wordsBatch(state.cols);
+        for (let i = 0; i < state.cols; i++) {
+          const node = wordsEl.children[i];
+          updateWord(node, batch[i]);
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    }
+
+    function updateWord(node, nextText) {
+      if (!state.animate) {
+        node.textContent = nextText;
+        return;
+      }
+      // лёгкий crossfade
+      anime.remove(node);
+      anime({
+        targets: node,
+        opacity: [1, 0],
+        duration: Math.max(40, Math.min(120, state.interval * 0.25)),
+        easing: "easeOutQuad",
+        complete: () => {
+          node.textContent = nextText;
+          anime({
+            targets: node,
+            opacity: [0, 1],
+            duration: Math.max(70, Math.min(180, state.interval * 0.35)),
+            easing: "easeOutQuad"
+          });
+        }
+      });
+    }
+
+    // -----------------------------
+    // Controls init
+    // -----------------------------
+    const speedSlider = document.getElementById('speedSlider');
+    const sizeSlider = document.getElementById('sizeSlider');
+
+    noUiSlider.create(speedSlider, {
+      start: state.interval,
+      step: 10,
+      connect: 'lower',
+      range: { min: 150, max: 1500 }
+    });
+    speedSlider.noUiSlider.on('update', (v) => {
+      const val = Math.round(parseFloat(v[0]));
+      speedVal.textContent = String(val);
+    });
+    speedSlider.noUiSlider.on('change', (v) => {
+      state.interval = Math.round(parseFloat(v[0]));
+    });
+
+    noUiSlider.create(sizeSlider, {
+      start: state.sizeFactor,
+      step: 0.05,
+      connect: 'lower',
+      range: { min: 0.6, max: 2.0 }
+    });
+    sizeSlider.noUiSlider.on('update', (v) => {
+      state.sizeFactor = parseFloat(v[0]);
+      sizeVal.textContent = state.sizeFactor.toFixed(2) + "×";
+      document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
+    });
+
+    // Dropdowns and buttons
+    const colsSel = document.getElementById('cols');
+    const fontSel = document.getElementById('font');
+    const themeSel = document.getElementById('theme');
+    const animToggle = document.getElementById('animToggle');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const fsBtn = document.getElementById('fsBtn');
+    const urlInput = document.getElementById('url');
+    const loadBtn = document.getElementById('loadBtn');
+    const resetWordsBtn = document.getElementById('resetWordsBtn');
+
+    colsSel.value = String(state.cols);
+    fontSel.value = state.font;
+    themeSel.value = state.theme;
+    animToggle.checked = state.animate;
+    document.body.setAttribute('data-theme', state.theme);
+    document.body.style.fontFamily = state.font;
+
+    colsSel.addEventListener('change', () => {
+      state.cols = Math.max(1, Math.min(3, parseInt(colsSel.value, 10) || 1));
+      ensureColumns(state.cols);
+      persist();
+    });
+    fontSel.addEventListener('change', () => {
+      state.font = fontSel.value;
+      document.body.style.fontFamily = state.font;
+      persist();
+    });
+    themeSel.addEventListener('change', () => {
+      state.theme = themeSel.value;
+      document.body.setAttribute('data-theme', state.theme);
+      persist();
+    });
+    animToggle.addEventListener('change', () => {
+      state.animate = !!animToggle.checked;
+      persist();
+    });
+
+    pauseBtn.addEventListener('click', () => toggleRun());
+    fsBtn.addEventListener('click', () => toggleFullscreen());
+
+    loadBtn.addEventListener('click', () => loadWordsFromURL());
+    resetWordsBtn.addEventListener('click', () => {
+      state.words = [...builtinWords];
+      state.lastSeen.length = 0;
+      state.source = "встроенный";
+      countWordsEl.textContent = String(state.words.length);
+      sourceEl.textContent = state.source;
+      toast("Вернулся встроенный словарь.");
+      persist();
+    });
+
+    // -----------------------------
+    // Keyboard
+    // -----------------------------
+    tinykeys(window, {
+      " ": (e) => { e.preventDefault(); toggleRun(); },
+      "ArrowUp": (e) => { e.preventDefault(); nudgeSpeed(-50); },
+      "ArrowDown": (e) => { e.preventDefault(); nudgeSpeed(+50); },
+      "ArrowRight": (e) => { e.preventDefault(); nudgeSize(+0.05); },
+      "ArrowLeft": (e) => { e.preventDefault(); nudgeSize(-0.05); },
+      "Digit1": () => setCols(1),
+      "Digit2": () => setCols(2),
+      "Digit3": () => setCols(3),
+      "KeyF": () => toggleFullscreen()
+    });
+
+    function nudgeSpeed(delta) {
+      const nv = Math.min(1500, Math.max(150, state.interval + delta));
+      speedSlider.noUiSlider.set(nv);
+      state.interval = nv;
+    }
+    function nudgeSize(delta) {
+      const nv = Math.min(2.0, Math.max(0.6, state.sizeFactor + delta));
+      sizeSlider.noUiSlider.set(nv);
+      state.sizeFactor = nv;
+      document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
+    }
+    function setCols(n) {
+      colsSel.value = String(n);
+      colsSel.dispatchEvent(new Event('change'));
+    }
+
+    function toggleRun() {
+      state.running = !state.running;
+      pauseBtn.textContent = state.running ? "Пауза" : "Старт";
+    }
+
+    // -----------------------------
+    // Fullscreen
+    // -----------------------------
+    function toggleFullscreen() {
+      const el = document.documentElement;
+      if (!document.fullscreenElement) {
+        if (el.requestFullscreen) el.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    // -----------------------------
+    // Загрузка слов по URL
+    // -----------------------------
+    async function loadWordsFromURL() {
+      const url = (urlInput.value || "").trim();
+      if (!url) { toast("Укажи URL с текстом: по одному слову в строке."); return; }
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const txt = await res.text();
+        const list = parseWords(txt);
+        if (list.length < 10) {
+          toast("Слишком мало слов. Нужно хотя бы 10.", true);
+          return;
+        }
+        state.words = list;
+        state.lastSeen.length = 0;
+        state.source = "URL";
+        countWordsEl.textContent = String(state.words.length);
+        sourceEl.textContent = state.source;
+        toast("Слова обновлены: " + list.length);
+        persist();
+      } catch (e) {
+        toast("Ошибка загрузки: " + e.message, true);
+      }
+    }
+
+    function parseWords(text) {
+      // Разделяем по переводам строк/запятым/точкам с запятой/табам
+      const raw = text.split(/[\r\n,;|\t]+/g);
+      const cleaned = raw
+        .map(s => s.trim())
+        .filter(s => s.length >= 1 && s.length <= 24)
+        .filter(s => /[^\d._/\\]/.test(s)); // отсечь чисто цифровые/технические токены
+      // Удаляем дубляжи с учетом регистра
+      const uniq = [];
+      const seen = new Set();
+      for (const w of cleaned) {
+        const key = w; // чувствительность к регистру сохраняем
+        if (!seen.has(key)) { seen.add(key); uniq.push(w); }
+      }
+      return uniq;
+    }
+
+    // -----------------------------
+    // Тостер
+    // -----------------------------
+    let toastTimer = 0;
+    function toast(msg, isErr = false) {
+      let t = document.getElementById('toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.style.position = 'fixed';
+        t.style.left = '50%';
+        t.style.bottom = '20px';
+        t.style.transform = 'translateX(-50%)';
+        t.style.padding = '10px 14px';
+        t.style.borderRadius = '10px';
+        t.style.border = '1px solid var(--panel-stroke)';
+        t.style.background = 'var(--panel)';
+        t.style.backdropFilter = 'blur(6px)';
+        t.style.zIndex = 9999;
+        t.style.maxWidth = '90vw';
+        t.style.whiteSpace = 'pre-line';
+        t.style.pointerEvents = 'none';
+        document.body.appendChild(t);
+      }
+      t.style.color = isErr ? 'var(--danger)' : 'var(--fg)';
+      t.textContent = msg;
+      clearTimeout(toastTimer);
+      t.style.opacity = '1';
+      toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+    }
+
+    // -----------------------------
+    // Persistence
+    // -----------------------------
+    const STORAGE_KEY = "wordflux:settings:v1";
+    function persist() {
+      try {
+        const data = {
+          interval: state.interval,
+          sizeFactor: state.sizeFactor,
+          cols: state.cols,
+          font: state.font,
+          theme: state.theme,
+          animate: state.animate,
+          source: state.source,
+          // словарь не сохраняем если внешний — может быть огромным; сохраняем только встроенный флаг
+          useBuiltin: (state.source !== "URL")
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch {}
+    }
+    function restore() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (typeof data.interval === 'number') {
+          state.interval = Math.min(1500, Math.max(150, data.interval));
+          speedSlider.noUiSlider.set(state.interval);
+        }
+        if (typeof data.sizeFactor === 'number') {
+          state.sizeFactor = Math.min(2.0, Math.max(0.6, data.sizeFactor));
+          sizeSlider.noUiSlider.set(state.sizeFactor);
+          document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
+        }
+        if ([1,2,3].includes(data.cols)) {
+          state.cols = data.cols; colsSel.value = String(state.cols);
+          ensureColumns(state.cols);
+        }
+        if (data.font) { state.font = data.font; fontSel.value = state.font; document.body.style.fontFamily = state.font; }
+        if (data.theme) { state.theme = data.theme; themeSel.value = state.theme; document.body.setAttribute('data-theme', state.theme); }
+        if (typeof data.animate === 'boolean') { state.animate = data.animate; animToggle.checked = state.animate; }
+        if (data.useBuiltin === false) {
+          // если ранее был внешний словарь, предупреждаем, что надо снова загрузить
+          state.words = [...builtinWords];
+          state.source = "встроенный";
+        }
+      } catch {}
+    }
+
+    // -----------------------------
+    // Boot
+    // -----------------------------
+    function boot() {
+      ensureColumns(state.cols);
+      countWordsEl.textContent = String(state.words.length);
+      sourceEl.textContent = state.source;
+      // старт тикера
+      rafId = requestAnimationFrame(step);
+      // авто-троттлинг при скрытии вкладки
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          // деликатно замедлим
+          state._savedInterval = state.interval;
+          state.interval = Math.min(1500, Math.max(400, state.interval * 2));
+        } else if (state._savedInterval) {
+          state.interval = state._savedInterval;
+          delete state._savedInterval;
+        }
+      }, { passive: true });
+      toast("Space — пауза, F — фуллскрин.");
+    }
+
+    restore();
+    boot();
+
+    // Вежливый предел скорости: предупреждаем при экстремальных значениях
+    speedSlider.noUiSlider.on('set', (v) => {
+      const val = Number(v[0]);
+      if (val < 220) toast("Шустро. Помни про глаза.", false);
+      if (val > 1200) toast("Очень медленно. Это уже медитация.", false);
+    });
+
+    // Маленькая страховка для iOS зума
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+  </script>
+</body>
+</html>

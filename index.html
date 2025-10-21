@@ -5,6 +5,7 @@
   <title>Word Flux — быстрые случайные слова</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f0f12'/%3E%3Cpath d='M18 18h28v4H22v20h-4V18zm8 10h20v4H30v-4zm0 12h20v4H30v-4z' fill='%23eaeaea'/%3E%3C/svg%3E" />
 
   <!-- Fonts (10 families) via Bunny (без лишней телеметрии) -->
   <link rel="preconnect" href="https://fonts.bunny.net" />
@@ -196,6 +197,24 @@
       letter-spacing: 0.1em;
       font-size: 11px;
     }
+    .btn.is-loading {
+      position: relative;
+      color: var(--fg-dim);
+      pointer-events: none;
+    }
+    .btn.is-loading::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--accent);
+      border-left-color: var(--accent);
+      transform: translate(-50%, -50%);
+      animation: spin 640ms linear infinite;
+    }
     .btn.is-pressed {
       animation: btnPulse 340ms var(--ease);
     }
@@ -203,6 +222,10 @@
       0% { transform: translateY(0); box-shadow: 0 0 0 rgba(0,0,0,0); }
       45% { transform: translateY(-3px) scale(1.02); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28); }
       100% { transform: translateY(0); box-shadow: 0 0 0 rgba(0,0,0,0); }
+    }
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
     .words-panel {
@@ -537,27 +560,23 @@
               <div class="dict-group">
                 <div class="dict-group-title">Русский</div>
                 <div class="btn-row">
-                  <button class="btn" data-preset="ru-classic">Классика</button>
-                  <button class="btn" data-preset="ru-verbs">Глаголы</button>
-                  <button class="btn" data-preset="ru-sport">Спорт</button>
+                  <button class="btn" data-preset="ru-lexicon">15 000 базовых слов</button>
                 </div>
+                <div class="dict-note">Широкий охват лексики без тематических ограничений.</div>
               </div>
               <div class="dict-group">
                 <div class="dict-group-title">Українська</div>
                 <div class="btn-row">
-                  <button class="btn" data-preset="uk-modern">Сучасна</button>
-                  <button class="btn" data-preset="uk-poetry">Поезія</button>
-                  <button class="btn" data-preset="uk-motion">Рух</button>
+                  <button class="btn" data-preset="uk-lexicon">15 000 повсякденних слів</button>
                 </div>
+                <div class="dict-note">Актуальні слова сучасної української мови.</div>
               </div>
               <div class="dict-group">
                 <div class="dict-group-title">English</div>
                 <div class="btn-row">
-                  <button class="btn" data-preset="en-focus">Focus</button>
-                  <button class="btn" data-preset="en-energy">Energy</button>
-                  <button class="btn" data-preset="en-design">Design</button>
+                  <button class="btn" data-preset="en-lexicon">15 000 everyday words</button>
                 </div>
-                <div class="dict-note">Клик загружает слова мгновенно — без копирования URL.</div>
+                <div class="dict-note">Общий словарь без профессиональных тематик.</div>
               </div>
             </div>
           </div>
@@ -674,41 +693,29 @@
     ];
 
     const dictionaryPresets = {
-      "ru-classic": {
-        label: "RU · Классика",
-        words: ["слово","вдох","рифма","волна","мгновение","память","взгляд","шаг","слой","свет","тень","форма","мост","вектор","такт","стезя","краска","след","почерк","поток"]
+      "ru-lexicon": {
+        label: "RU · 15K базовых слов",
+        language: "ru",
+        url: "data/ru.txt",
+        size: 15000,
+        words: null,
+        loading: null
       },
-      "ru-verbs": {
-        label: "RU · Глаголы",
-        words: ["дышать","искать","слушать","ждать","чувствовать","думать","создавать","строить","лететь","гореть","менять","играть","читать","писать","плыть","шептать","рисовать","мчаться","искриться","держать"]
+      "uk-lexicon": {
+        label: "UA · 15K слів",
+        language: "uk",
+        url: "data/uk.txt",
+        size: 15000,
+        words: null,
+        loading: null
       },
-      "ru-sport": {
-        label: "RU · Спорт",
-        words: ["рывок","финиш","подача","сетка","удар","пас","дриблинг","спринт","трибуна","капитан","трофей","матч","старт","победа","игра","гол","атака","защита","темп","раунд"]
-      },
-      "uk-modern": {
-        label: "UA · Сучасна",
-        words: ["рух","простір","ідентичність","ритм","голос","місто","мрія","пульс","хвиля","тінь","світло","подих","крок","лаконічність","тон","сила","форма","грані","погляд","сенс"]
-      },
-      "uk-poetry": {
-        label: "UA · Поезія",
-        words: ["зоря","крапля","шелест","наспів","відлуння","стежка","вишня","промінь","вітер","осінь","дощ","пам'ять","розквіт","серпанок","світання","казка","півтон","струна","дотик","шурхіт"]
-      },
-      "uk-motion": {
-        label: "UA · Рух",
-        words: ["біг","старт","фініш","ривок","імпульс","темп","мах","крок","розгін","підйом","стрибок","кільце","поле","центр","команда","пас","удар","щит","захист","перемога"]
-      },
-      "en-focus": {
-        label: "EN · Focus",
-        words: ["focus","clarity","intent","pulse","signal","vector","anchor","outline","detail","steady","purpose","vision","insight","pattern","plan","target","scope","moment","accent","point"]
-      },
-      "en-energy": {
-        label: "EN · Energy",
-        words: ["energy","momentum","spark","charge","impulse","thrive","ignite","surge","vital","dynamic","burst","accelerate","power","drive","rush","lift","flux","tempo","vibe","glow"]
-      },
-      "en-design": {
-        label: "EN · Design",
-        words: ["layout","contrast","grid","balance","hierarchy","rhythm","typography","baseline","module","spacing","palette","alignment","scale","texture","motion","prototype","feedback","iteration","craft","concept"]
+      "en-lexicon": {
+        label: "EN · 15K words",
+        language: "en",
+        url: "data/en.txt",
+        size: 15000,
+        words: null,
+        loading: null
       }
     };
 
@@ -749,6 +756,8 @@
       lastSeen: [],
       rngSeed: Date.now() % 2**31
     };
+
+    let toastTimer = 0;
 
     // -----------------------------
     // PRNG с сидом (xorshift32)
@@ -796,15 +805,54 @@
       });
     }
 
-    function applyPresetById(id, opts = {}) {
-      const preset = dictionaryPresets[id];
-      if (!preset) return false;
-      applyPreset(preset, { id, ...opts });
-      return true;
+    async function ensurePresetWords(preset) {
+      if (Array.isArray(preset.words) && preset.words.length > 0) {
+        return preset.words;
+      }
+      if (!preset.url) {
+        throw new Error('Нет источника словаря.');
+      }
+      if (!preset.loading) {
+        preset.loading = fetch(preset.url, { cache: 'no-store' })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error('HTTP ' + res.status);
+            }
+            return res.text();
+          })
+          .then(text => {
+            const list = parseWords(text);
+            if (list.length < 10000) {
+              throw new Error('Получено слишком мало слов (' + list.length + ').');
+            }
+            preset.words = list;
+            return list;
+          })
+          .finally(() => {
+            preset.loading = null;
+          });
+      }
+      return preset.loading;
     }
 
-    function applyPreset(preset, { id = null, silent = false, skipPersist = false } = {}) {
-      state.words = [...preset.words];
+    async function applyPresetById(id, opts = {}) {
+      const preset = dictionaryPresets[id];
+      if (!preset) return false;
+      try {
+        const words = await ensurePresetWords(preset);
+        applyPreset(preset, words, { id, ...opts });
+        return true;
+      } catch (error) {
+        console.error('Failed to load preset', id, error);
+        if (!opts.silent) {
+          toast('Не удалось загрузить словарь: ' + (error.message || error), true);
+        }
+        return false;
+      }
+    }
+
+    function applyPreset(preset, words, { id = null, silent = false, skipPersist = false } = {}) {
+      state.words = Array.isArray(words) ? [...words] : [];
       state.lastSeen.length = 0;
       state.source = preset.label;
       state.sourceKind = 'preset';
@@ -1037,11 +1085,18 @@
     });
 
     presetButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-preset');
-        if (!id) return;
-        if (!applyPresetById(id)) {
-          toast('Не удалось загрузить предустановку.', true);
+        if (!id || btn.classList.contains('is-loading')) return;
+        presetButtons.forEach(b => b.classList.remove('is-loading'));
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        const ok = await applyPresetById(id);
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+        if (ok) {
+          btn.classList.add('is-pressed');
+          setTimeout(() => btn.classList.remove('is-pressed'), 420);
         }
       });
     });
@@ -1128,7 +1183,13 @@
     // -----------------------------
     // Keyboard
     // -----------------------------
-    tinykeys(window, {
+    const tinykeysGlobal = typeof window !== 'undefined' ? window.tinykeys : null;
+    const tinykeysFn = (typeof tinykeysGlobal === 'function')
+      ? tinykeysGlobal
+      : (tinykeysGlobal && typeof tinykeysGlobal.tinykeys === 'function')
+        ? tinykeysGlobal.tinykeys
+        : null;
+    const keyBindings = {
       " ": (e) => { e.preventDefault(); toggleRun(); },
       "ArrowUp": (e) => { e.preventDefault(); nudgeSpeed(-50); },
       "ArrowDown": (e) => { e.preventDefault(); nudgeSpeed(+50); },
@@ -1138,7 +1199,17 @@
       "Digit2": () => setCols(2),
       "Digit3": () => setCols(3),
       "KeyF": () => toggleFullscreen()
-    });
+    };
+    if (tinykeysFn) {
+      tinykeysFn(window, keyBindings);
+    } else {
+      window.addEventListener('keydown', (event) => {
+        const handler = keyBindings[event.key] || keyBindings[event.code];
+        if (typeof handler === 'function') {
+          handler(event);
+        }
+      });
+    }
 
     function nudgeSpeed(delta) {
       const nv = Math.min(1500, Math.max(150, state.interval + delta));
@@ -1229,7 +1300,6 @@
     // -----------------------------
     // Тостер
     // -----------------------------
-    let toastTimer = 0;
     function toast(msg, isErr = false) {
       let t = document.getElementById('toast');
       if (!t) {
@@ -1286,55 +1356,62 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {}
     }
-    function restore() {
+    async function restore() {
       let pendingPreset = null;
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          renderControlsCollapse();
-          renderPresetSelection();
-          return;
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (typeof data.interval === 'number') {
+            state.interval = Math.min(1500, Math.max(150, data.interval));
+            speedSlider.noUiSlider.set(state.interval);
+          }
+          if (typeof data.sizeFactor === 'number') {
+            state.sizeFactor = Math.min(2.0, Math.max(0.6, data.sizeFactor));
+            sizeSlider.noUiSlider.set(state.sizeFactor);
+            document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
+          }
+          if ([1,2,3].includes(data.cols)) {
+            state.cols = data.cols; colsSel.value = String(state.cols);
+            ensureColumns(state.cols);
+          }
+          if (data.font) { state.font = data.font; fontSel.value = state.font; document.body.style.fontFamily = state.font; }
+          if (data.theme) { state.theme = data.theme; themeSel.value = state.theme; document.body.setAttribute('data-theme', state.theme); }
+          if (typeof data.animate === 'boolean') { state.animate = data.animate; animToggle.checked = state.animate; }
+          if (typeof data.controlsCollapsed === 'boolean') { state.controlsCollapsed = data.controlsCollapsed; }
+          if (typeof data.sourceKind === 'string') { state.sourceKind = data.sourceKind; }
+          if (typeof data.source === 'string') { state.source = data.source; }
+          if (typeof data.presetId === 'string') { state.presetId = data.presetId; pendingPreset = data.presetId; }
+          if (state.sourceKind === 'builtin') {
+            state.words = [...builtinWords];
+            state.source = 'встроенный';
+          } else if (state.sourceKind === 'preset' && pendingPreset) {
+            // применим ниже, чтобы не перезаписывать persist во время восстановления
+          } else if (state.sourceKind === 'url') {
+            state.words = [...builtinWords];
+            state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
+          } else if (data.useBuiltin === false) {
+            state.sourceKind = 'url';
+            state.words = [...builtinWords];
+            state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
+          }
         }
-        const data = JSON.parse(raw);
-        if (typeof data.interval === 'number') {
-          state.interval = Math.min(1500, Math.max(150, data.interval));
-          speedSlider.noUiSlider.set(state.interval);
-        }
-        if (typeof data.sizeFactor === 'number') {
-          state.sizeFactor = Math.min(2.0, Math.max(0.6, data.sizeFactor));
-          sizeSlider.noUiSlider.set(state.sizeFactor);
-          document.documentElement.style.setProperty('--sizeFactor', state.sizeFactor);
-        }
-        if ([1,2,3].includes(data.cols)) {
-          state.cols = data.cols; colsSel.value = String(state.cols);
-          ensureColumns(state.cols);
-        }
-        if (data.font) { state.font = data.font; fontSel.value = state.font; document.body.style.fontFamily = state.font; }
-        if (data.theme) { state.theme = data.theme; themeSel.value = state.theme; document.body.setAttribute('data-theme', state.theme); }
-        if (typeof data.animate === 'boolean') { state.animate = data.animate; animToggle.checked = state.animate; }
-        if (typeof data.controlsCollapsed === 'boolean') { state.controlsCollapsed = data.controlsCollapsed; }
-        if (typeof data.sourceKind === 'string') { state.sourceKind = data.sourceKind; }
-        if (typeof data.source === 'string') { state.source = data.source; }
-        if (typeof data.presetId === 'string') { state.presetId = data.presetId; pendingPreset = data.presetId; }
-        if (state.sourceKind === 'builtin') {
-          state.words = [...builtinWords];
-          state.source = 'встроенный';
-        } else if (state.sourceKind === 'preset' && pendingPreset) {
-          // применим ниже, чтобы не перезаписывать persist во время восстановления
-        } else if (state.sourceKind === 'url') {
-          // словарь не сохраняем, поэтому откатываемся к встроенному
-          state.words = [...builtinWords];
-          state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
-        } else if (data.useBuiltin === false) {
-          state.sourceKind = 'url';
-          state.words = [...builtinWords];
-          state.source = data.source ? `${data.source} · обнови` : 'URL · обнови';
-        }
-      } catch {}
+      } catch (err) {
+        console.warn('Не удалось восстановить состояние', err);
+      }
       renderControlsCollapse();
       renderPresetSelection();
       if (state.sourceKind === 'preset' && pendingPreset) {
-        applyPresetById(pendingPreset, { silent: true, skipPersist: true });
+        const loaded = await applyPresetById(pendingPreset, { silent: true, skipPersist: true });
+        if (!loaded) {
+          state.sourceKind = 'builtin';
+          state.presetId = null;
+          state.words = [...builtinWords];
+          state.source = 'встроенный';
+          countWordsEl.textContent = String(state.words.length);
+          sourceEl.textContent = state.source;
+          renderPresetSelection();
+        }
       }
     }
 
@@ -1361,8 +1438,12 @@
       toast("Команды и словари — кнопка внизу и пресеты вверху.");
     }
 
-    restore();
-    boot();
+    async function init() {
+      await restore();
+      boot();
+    }
+
+    init();
 
     // Вежливый предел скорости: предупреждаем при экстремальных значениях
     speedSlider.noUiSlider.on('set', (v) => {
